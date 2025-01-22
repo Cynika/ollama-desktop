@@ -715,7 +715,7 @@ export namespace ollama {
 	}
 	export class SearchRequest {
 	    q: string;
-	    p: number;
+	    o: string;
 	    c: string;
 	
 	    static createFrom(source: any = {}) {
@@ -725,45 +725,9 @@ export namespace ollama {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.q = source["q"];
-	        this.p = source["p"];
+	        this.o = source["o"];
 	        this.c = source["c"];
 	    }
-	}
-	export class SearchResponse {
-	    query: string;
-	    page: number;
-	    pageCount: number;
-	    items: ModelInfo[];
-	
-	    static createFrom(source: any = {}) {
-	        return new SearchResponse(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.query = source["query"];
-	        this.page = source["page"];
-	        this.pageCount = source["pageCount"];
-	        this.items = this.convertValues(source["items"], ModelInfo);
-	    }
-	
-		convertValues(a: any, classs: any, asMap: boolean = false): any {
-		    if (!a) {
-		        return a;
-		    }
-		    if (a.slice && a.map) {
-		        return (a as any[]).map(elem => this.convertValues(elem, classs));
-		    } else if ("object" === typeof a) {
-		        if (asMap) {
-		            for (const key of Object.keys(a)) {
-		                a[key] = new classs(a[key]);
-		            }
-		            return a;
-		        }
-		        return new classs(a);
-		    }
-		    return a;
-		}
 	}
 	export class ShowRequest {
 	    model: string;

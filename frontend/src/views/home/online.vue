@@ -12,21 +12,15 @@
         <el-input v-model.trim="searchForm.q" style="width: 80%" size="large" placeholder="输入模型名称" :suffix-icon="Search" maxlength="100"/>
       </div>
       <div style="margin: 20px auto 0 auto;width: 80%;display: flex;align-items: center;justify-content: space-between;">
-        <el-radio-group v-model="searchForm.searchType">
-          <el-radio-button label="功能" value="function" />
-          <el-radio-button label="排序" value="sort" />
-        </el-radio-group>
-        <el-radio-group v-show="searchForm.searchType == 'sort'" v-model="searchForm.sort" class="split-radio">
-          <el-radio-button label="特色" value="featured" />
-          <el-radio-button label="最受欢迎" value="Most popular" />
-          <el-radio-button label="最新" value="Newest" />
-        </el-radio-group>
-        <el-radio-group v-show="searchForm.searchType == 'function'" v-model="searchForm.c" class="split-radio">
+        <el-radio-group v-model="searchForm.c" class="split-radio">
           <el-radio-button label="All" value="" />
           <el-radio-button label="Embedding" value="embedding" />
           <el-radio-button label="Vision" value="vision" />
           <el-radio-button label="Tools" value="tools" />
-          <el-radio-button label="Code" value="code" />
+        </el-radio-group>
+        <el-radio-group v-model="searchForm.o" class="split-radio">
+          <el-radio-button label="最受欢迎" value="popular" />
+          <el-radio-button label="最新" value="newest" />
         </el-radio-group>
       </div>
       <div style="margin: 20px auto 0 auto;width: 80%;">
@@ -50,16 +44,6 @@
           </div>
         </div>
       </div>
-      <el-pagination v-show="searchForm.searchType == 'function'"
-        style="margin-top: 40px;display: flex;justify-content: center;margin-bottom: 40px;"
-        hide-on-single-page
-        background
-        :current-page="pagination.page"
-        :page-count="pagination.pageCount"
-        layout="prev, pager, next"
-        @current-change="changeCurrentPage"
-        @change="$refs.scrollbar.setScrollTop(0)"
-      />
     </el-scrollbar>
   </div>
 </template>
@@ -80,15 +64,9 @@ function openLibrary(name) {
   router.push('/home/library/' + name)
 }
 
-const pagination = ref({
-  page: 1,
-  pageCount: 0
-})
-
 const searchForm = ref({
   q: '',
-  searchType: 'function',
-  sort: 'featured',
+  o: 'popular',
   c: ''
 })
 
@@ -102,7 +80,6 @@ const cacheKey = '/home/library'
 
 function saveCache() {
   sessionStorage.setItem(cacheKey, JSON.stringify({
-    pagination: pagination.value,
     searchForm: searchForm.value,
     list: list.value
   }))
@@ -114,7 +91,6 @@ onMounted(() => {
   let cacheValue = sessionStorage.getItem(cacheKey)
   if (cacheValue) {
     cacheValue = JSON.parse(cacheValue)
-    pagination.value = cacheValue.pagination
     searchForm.value = cacheValue.searchForm
     list.value = cacheValue.list
     nextTick(() => { inited = true })
@@ -125,28 +101,16 @@ onMounted(() => {
 })
 
 function handleSearch(page) {
-  if (searchForm.value.searchType === 'sort') {
-    loading.value = true
-    runQuietly(() => LibraryOnline({ q: searchForm.value.q, sort: searchForm.value.sort }), data => { list.value = data || [] }, _ => {
-      list.value = []
-      ElMessage.error('查询模型失败')
-    }, _ => {
-      saveCache()
-      loading.value = false
-    })
-  } else if (searchForm.value.searchType === 'function') {
-    loading.value = true
-    runQuietly(() => SearchOnline({ q: searchForm.value.q, p: page || 1, c: searchForm.value.c }), data => {
-      pagination.value = { page: data.page, pageCount: data.pageCount }
-      list.value = data.items || []
-    }, _ => {
-      list.value = []
-      ElMessage.error('查询模型失败')
-    }, _ => {
-      saveCache()
-      loading.value = false
-    })
-  }
+  loading.value = true
+  runQuietly(() => SearchOnline({ q: searchForm.value.q, o: searchForm.value.o, c: searchForm.value.c }), data => {
+    list.value = data || []
+  }, _ => {
+    list.value = []
+    ElMessage.error('查询模型失败')
+  }, _ => {
+    saveCache()
+    loading.value = false
+  })
 }
 
 let timeout

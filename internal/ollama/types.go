@@ -728,26 +728,15 @@ func FormatParams(params map[string][]string) (map[string]interface{}, error) {
 	return out, nil
 }
 
-type SimpleModelInfo struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Archive     bool   `json:"archive"`
-}
-
 type SearchRequest struct {
 	Q string `json:"q"`
-	P int    `json:"p"`
+	// newest
+	// popular
+	O string `json:"o"`
 	//embedding
 	//vision
 	//tools
 	C string `json:"c"`
-}
-
-type SearchResponse struct {
-	Query     string       `json:"query"`
-	Page      int          `json:"page"`
-	PageCount int          `json:"pageCount"`
-	Items     []*ModelInfo `json:"items"`
 }
 
 type ModelInfo struct {
@@ -758,14 +747,6 @@ type ModelInfo struct {
 	Tags        []string `json:"tags"`
 	TagCount    int      `json:"tagCount"`
 	UpdateTime  string   `json:"updateTime"`
-}
-
-func (r *SearchResponse) HasPrevious() bool {
-	return r.Page > 1
-}
-
-func (r *SearchResponse) HasNext() bool {
-	return r.Page < r.PageCount
 }
 
 type LibraryRequest struct {

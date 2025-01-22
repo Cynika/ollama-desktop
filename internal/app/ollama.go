@@ -156,7 +156,7 @@ func (o *Ollama) Embeddings(request *olm.EmbeddingRequest) (*olm.EmbeddingRespon
 	return resp, err
 }
 
-func (o *Ollama) SearchOnline(request *olm.SearchRequest) (*olm.SearchResponse, error) {
+func (o *Ollama) SearchOnline(request *olm.SearchRequest) ([]*olm.ModelInfo, error) {
 	resp, err := o.newOllamaClient().Search(app.ctx, request)
 	if err != nil {
 		log.Error().Err(err).Msg("search ollama model error")

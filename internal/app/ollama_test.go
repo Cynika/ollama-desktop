@@ -106,6 +106,40 @@ func TestOllama_ModelInfoOnline(t *testing.T) {
 	t.Log("readme", resp.Readme)
 }
 
+func TestOllama_LibraryOnline(t *testing.T) {
+	request := &olm.LibraryRequest{
+		Q:    "",
+		Sort: "",
+	}
+	resp, err := newOllamaClient().Library(context.Background(), request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, item := range resp {
+		pretty(t, item)
+	}
+}
+
+func TestOllama_SearchOnline(t *testing.T) {
+	request := &olm.SearchRequest{
+		Q: "ddd",
+		O: "",
+		C: "tools",
+	}
+	resp, err := newOllamaClient().Search(context.Background(), request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, item := range resp {
+		pretty(t, item)
+	}
+}
+
+func pretty(t *testing.T, value interface{}) {
+	data, _ := json.Marshal(value)
+	t.Log(string(data))
+}
+
 func newApiClient() *api.Client {
 	ollamaHost := config.Config.Ollama.Host
 	return &api.Client{

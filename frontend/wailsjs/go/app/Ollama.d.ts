@@ -21,7 +21,7 @@ export function ModelInfoOnline(arg1:string):Promise<ollama.ModelInfoResponse>;
 
 export function Pull(arg1:string,arg2:ollama.PullRequest):Promise<void>;
 
-export function SearchOnline(arg1:ollama.SearchRequest):Promise<ollama.SearchResponse>;
+export function SearchOnline(arg1:ollama.SearchRequest):Promise<Array<ollama.ModelInfo>>;
 
 export function Show(arg1:ollama.ShowRequest):Promise<ollama.ShowResponse>;
 

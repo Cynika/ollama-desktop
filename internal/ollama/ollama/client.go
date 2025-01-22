@@ -113,35 +113,10 @@ func parseTags(spans *goquery.Selection) []string {
 	return tags
 }
 
-func (c *Client) SearchPreview(ctx context.Context, q string) ([]*ollama.SimpleModelInfo, error) {
-	respBody, err := c.do(ctx, "/search-preview", map[string]string{"q": q})
-	if err != nil {
-		return nil, err
-	}
-	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(respBody))
-	if err != nil {
-		return nil, err
-	}
-	var list []*ollama.SimpleModelInfo
-	doc.Find("ul > li > a").Each(func(i int, item *goquery.Selection) {
-		children := item.Children()
-		name, archive := parseNameArchive(children.First())
-		list = append(list, &ollama.SimpleModelInfo{
-			Name:        name,
-			Archive:     archive,
-			Description: strings.TrimSpace(children.Last().Text()),
-		})
-	})
-	return list, nil
-}
-
-func (c *Client) Search(ctx context.Context, request *ollama.SearchRequest) (*ollama.SearchResponse, error) {
-	if request.P <= 0 {
-		request.P = 1
-	}
+func (c *Client) Search(ctx context.Context, request *ollama.SearchRequest) ([]*ollama.ModelInfo, error) {
 	respBody, err := c.do(ctx, "/search", map[string]string{
 		"q": request.Q,
-		"p": strconv.Itoa(request.P),
+		"o": request.O,
 		"c": request.C,
 	})
 	if err != nil {
@@ -155,10 +130,10 @@ func (c *Client) Search(ctx context.Context, request *ollama.SearchRequest) (*ol
 
 	// 解析模型信息
 	doc.Find("ul.grid > li > a").Each(func(_ int, item *goquery.Selection) {
-		name, archive := parseNameArchive(item.Find("h2.flex.items-center").First())
-		description := strings.TrimSpace(item.Find("div.space-y-2 > p.break-words").First().Text())
-		tags := parseTags(item.Find("div.space-y-2 > div.space-x-2 > span"))
-		pullCount, tagCount, updated := parsePullTagCountAndUpdated(item.Find("div.space-y-2 > p.space-x-5 > span"))
+		name, archive := parseNameArchive(item.Find("div.flex > h2").First())
+		description := strings.TrimSpace(item.Find("div.flex > p.break-words").First().Text())
+		tags := parseTags(item.Find("div.flex > div.space-x-2 > span"))
+		pullCount, tagCount, updated := parsePullTagCountAndUpdated(item.Find("div.flex > p.space-x-5 > span"))
 		list = append(list, &ollama.ModelInfo{
 			Name:        name,
 			Archive:     archive,
@@ -169,26 +144,8 @@ func (c *Client) Search(ctx context.Context, request *ollama.SearchRequest) (*ol
 			UpdateTime:  updated,
 		})
 	})
-	pageCount := 0
-	// 解析导航页码
-	doc.Find("nav > ul > li > a").Each(func(_ int, item *goquery.Selection) {
-		text := strings.TrimSpace(item.Text())
-		if "Previous" == text || "Next" == text {
-			return
-		}
-		if page, err := strconv.Atoi(text); err == nil {
-			if page > pageCount {
-				pageCount = page
-			}
-		}
-	})
 
-	return &ollama.SearchResponse{
-		Query:     request.Q,
-		Page:      request.P,
-		PageCount: pageCount,
-		Items:     list,
-	}, nil
+	return list, err
 }
 
 func (c *Client) Library(ctx context.Context, request *ollama.LibraryRequest) ([]*ollama.ModelInfo, error) {
@@ -210,8 +167,8 @@ func (c *Client) Library(ctx context.Context, request *ollama.LibraryRequest) ([
 
 	// 解析模型信息
 	doc.Find("ul.grid > li > a").Each(func(_ int, item *goquery.Selection) {
-		name, archive := parseNameArchive(item.Find("div.flex.items-center.mb-3").First())
-		description := strings.TrimSpace(item.Find("div.space-y-2 > p.break-words").First().Text())
+		name, archive := parseNameArchive(item.Find("div.flex > h2").First())
+		description := strings.TrimSpace(item.Find("div.flex > p.break-words").First().Text())
 		tags := parseTags(item.Find("div.space-y-2 > div.space-x-2 > span"))
 		pullCount, tagCount, updated := parsePullTagCountAndUpdated(item.Find("div.space-y-2 > p.space-x-5 > span"))
 		list = append(list, &ollama.ModelInfo{
@@ -297,10 +254,10 @@ func (c *Client) ModelInfo(ctx context.Context, modelTag string) (*ollama.ModelI
 		return nil, err
 	}
 
-	name, archive := parseNameArchive(doc.Find("div > main > section > div > h1").First())
-	description := strings.TrimSpace(doc.Find("div > main > section > h2.break-words").First().Text())
-	tags := parseTags(doc.Find("div > main > section > div.space-x-2 > span"))
-	pullCount, tagCount, updated := parsePullTagCountAndUpdated(doc.Find("div > main > section > p.space-x-5 > span"))
+	name, archive := parseNameArchive(doc.Find("main > div.flex > div.flex > div.mb-3").First())
+	description := strings.TrimSpace(doc.Find("main > div.flex #summary").First().Text())
+	tags := parseTags(doc.Find("main > div.flex #summary+div > div.space-x-2 > span"))
+	pullCount, tagCount, updated := parsePullTagCountAndUpdated(doc.Find("main > div.flex #summary+div > p.space-x-5 > span"))
 	modelInfo := &ollama.ModelInfo{
 		Name:        name,
 		Archive:     archive,

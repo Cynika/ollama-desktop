@@ -3,7 +3,7 @@
 set -e
 
 echo "[ BUILD RELEASE ]"
-BuildVersion="v0.0.1"
+BuildVersion="v0.0.2"
 
 # -ldflag 参数
 GOLDFLAGS="-s -w -X 'ollama-desktop/internal/config.BuildHash=N/A'"
