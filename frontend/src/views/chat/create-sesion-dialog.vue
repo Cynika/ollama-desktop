@@ -325,8 +325,17 @@ function handleSubmitSession() {
 }
 
 function showDialog(session) {
+  const { seed, numPredict, topK, topP, numCtx, temperature, repeatPenalty } = session && JSON.parse(session.options || '{}')
+  const options = {}
+  options.optionsSeed = seed
+  options.optionsNumPredict = numPredict
+  options.optionsTopK = topK
+  options.optionsTopP = topP
+  options.optionsNumCtx = numCtx
+  options.optionsTemperature = temperature
+  options.optionsRepeatPenalty = repeatPenalty
   loadModels()
-  sessionFormData.value = { ...emptyData, ...session }
+  sessionFormData.value = { ...emptyData, ...session, ...options }
   visible.value = true
   sessionFormRef.value?.clearValidate()
 }
