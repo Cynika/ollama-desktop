@@ -3,7 +3,7 @@ name: ollama-desktop build
 on:
   # push:
   #   tags:
-      # Match any new tag
+  # Match any new tag
   #     - '*'
 
   # Allows you to run this workflow manually from the Actions tab
@@ -23,8 +23,8 @@ jobs:
         build:
           - name: 'ollama-desktop'
             platform: 'linux/amd64'
-            os: 'ubuntu-latest'
-          - name: 'ollama-desktop'
+            os: 'ubuntu-20.04'
+          - name: 'ollama-desktop.exe'
             platform: 'windows/amd64'
             os: 'windows-latest'
           - name: 'ollama-desktop'
