@@ -9,7 +9,7 @@
   >
     <el-scrollbar>
       <div style="display: flex;align-items: center;justify-content: center;margin-top: 15px;flex-direction: column;">
-        <el-result title="Ollama DeskTop" :sub-title="subTitle" style="--el-result-extra-margin-top: 10px;">
+        <el-result title="Ollama Desktop" :sub-title="subTitle" style="--el-result-extra-margin-top: 10px;">
           <template #icon>
             <img src="/ollama.png" />
           </template>
@@ -22,9 +22,13 @@
           <el-text style="margin-left: 5px;cursor: pointer;" type="primary" @click="openBrowser('https://www.jianggujin.com')">Jianggujin</el-text>
         </div>
         <div style="margin-top: 20px;display: flex;gap: 10px;align-items: center;justify-content: center;">
-          <el-text style="cursor: pointer;" type="primary" @click="openBrowser('https://github.com/jianggujin/ollama-desktop')">项目主页</el-text>
+          <el-text style="cursor: pointer;" type="primary" @click="openBrowser('https://github.com/jianggujin/ollama-desktop')">项目主页(Github)</el-text>
           <el-text>|</el-text>
-          <el-text style="cursor: pointer;" type="primary" @click="openBrowser('https://www.jianggujin.com')">个人主页</el-text>
+          <el-text style="cursor: pointer;" type="primary" @click="openBrowser('https://gitee.com/jianggujin/ollama-desktop')">项目主页(Gitee)</el-text>
+        </div>
+        <div v-if="appInfo.LastName && appInfo.LastUrl" style="margin-top: 20px;display: flex;gap: 10px;align-items: center;justify-content: center;">
+          <el-text>检测到新版本</el-text>
+          <el-text style="margin-left: 5px;cursor: pointer;" type="primary" @click="openBrowser(appInfo.LastUrl)">appInfo.LastName</el-text>
         </div>
       </div>
     </el-scrollbar>

@@ -82,17 +82,36 @@ let autoStarted = false
 onMounted(() => {
   runQuietly(Heartbeat)
   runQuietly(() => {
-    EventsOn('ollamaHeartbeat', (installed, started, canStart, version) => {
+    EventsOn('ollamaHeartbeat', (installed, started, canStart, version, upgrade, lastVersion) => {
       ollamaStore.installed = installed
       ollamaStore.started = started
       ollamaStore.canStart = canStart
       ollamaStore.version = version
+      ollamaStore.upgrade = upgrade
+      ollamaStore.lastVersion = lastVersion
       if (started) {
         autoStarted = true
       }
       if (canStart && !autoStarted) {
         autoStarted = true
         startOllamaApp()
+      }
+      if (upgrade && lastVersion) {
+        // 提示升级
+        const instance = ElNotification({
+          title: `Ollama(${lastVersion.name})升级提示`,
+          message: `Ollama有新的版本(${lastVersion.name})可更新，建议点击查看最新版本并及时更新`,
+          type: 'warning',
+          duration: 0,
+          onClick() {
+            runQuietly(() => {
+              if (lastVersion.url) {
+                BrowserOpenURL(lastVersion.url)
+              }
+              instance.close()
+            })
+          }
+        })
       }
     })
   })
@@ -112,6 +131,25 @@ onMounted(() => {
         title: '错误',
         message: `模型${item.model}下载失败`,
         type: 'error'
+      })
+    })
+  })
+  runQuietly(() => {
+    EventsOn('appUpgrade', item => {
+      // 提示升级
+      const instance = ElNotification({
+        title: `Ollama Desktop(${item.name})升级提示`,
+        message: `Ollama Desktop有新的版本(${item.name})可更新，建议点击查看最新版本并及时更新`,
+        type: 'warning',
+        duration: 0,
+        onClick() {
+          runQuietly(() => {
+            if (item.url) {
+              BrowserOpenURL(item.url)
+            }
+            instance.close()
+          })
+        }
       })
     })
   })

@@ -19,6 +19,8 @@ export function ListRunning():Promise<ollama.ProcessResponse>;
 
 export function ModelInfoOnline(arg1:string):Promise<ollama.ModelInfoResponse>;
 
+export function ModelTagsOnline(arg1:string):Promise<ollama.ModelTagsResponse>;
+
 export function Pull(arg1:string,arg2:ollama.PullRequest):Promise<void>;
 
 export function SearchOnline(arg1:ollama.SearchRequest):Promise<Array<ollama.ModelInfo>>;

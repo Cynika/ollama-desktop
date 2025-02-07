@@ -195,10 +195,10 @@ func (c *Client) ModelTags(ctx context.Context, model string) (*ollama.ModelTags
 		return nil, err
 	}
 
-	name, archive := parseNameArchive(doc.Find("div > main > section > div > h1").First())
-	description := strings.TrimSpace(doc.Find("div > main > section > h2.break-words").First().Text())
-	tags := parseTags(doc.Find("div > main > section > div.space-x-2 > span"))
-	pullCount, tagCount, updated := parsePullTagCountAndUpdated(doc.Find("div > main > section > p.space-x-5 > span"))
+	name, archive := parseNameArchive(doc.Find("main > div.flex > div.flex > div.mb-3").First())
+	description := strings.TrimSpace(doc.Find("main > div.flex #summary").First().Text())
+	tags := parseTags(doc.Find("main > div.flex #summary+div > div.space-x-2 > span"))
+	pullCount, tagCount, updated := parsePullTagCountAndUpdated(doc.Find("main > div.flex #summary+div > p.space-x-5 > span"))
 	modelInfo := &ollama.ModelInfo{
 		Name:        name,
 		Archive:     archive,
@@ -226,7 +226,7 @@ func (c *Client) ModelTags(ctx context.Context, model string) (*ollama.ModelTags
 
 		line1Node := tagNode.Find("div.space-x-2").First()
 		name := strings.TrimSpace(line1Node.Find("a.group").Text())
-		latest := strings.Contains(line1Node.Find("span.px-2").Text(), "latest")
+		latest := strings.Contains(name, "latest")
 
 		infos := strings.Split(tagNode.Find("div.space-x-1 > span").Text(), "•")
 		tag := &ollama.ModelTag{
@@ -234,7 +234,7 @@ func (c *Client) ModelTags(ctx context.Context, model string) (*ollama.ModelTags
 			Latest:     latest,
 			Id:         strings.TrimSpace(infos[0]),
 			Size:       strings.TrimSpace(infos[1]),
-			UpdateTime: strings.TrimSpace(strings.TrimSpace(infos[2])[7:]),
+			UpdateTime: strings.TrimSpace(infos[2]),
 		}
 		modelTags = append(modelTags, tag)
 	}
@@ -258,6 +258,15 @@ func (c *Client) ModelInfo(ctx context.Context, modelTag string) (*ollama.ModelI
 	description := strings.TrimSpace(doc.Find("main > div.flex #summary").First().Text())
 	tags := parseTags(doc.Find("main > div.flex #summary+div > div.space-x-2 > span"))
 	pullCount, tagCount, updated := parsePullTagCountAndUpdated(doc.Find("main > div.flex #summary+div > p.space-x-5 > span"))
+	if tagCount == 0 {
+		// 模型详情页面排版变化，此处需要重新获取标签数量
+		tagCountStr := strings.TrimSpace(doc.Find("main > div.flex section a[x-test-tags-link]").First().Text())
+		if strings.HasSuffix(tagCountStr, "Tags") {
+			tagCount, _ = strconv.Atoi(strings.TrimSpace(tagCountStr[:len(tagCountStr)-4]))
+		} else if strings.HasSuffix(tagCountStr, "Tags") {
+			tagCount, _ = strconv.Atoi(strings.TrimSpace(tagCountStr[:len(tagCountStr)-3]))
+		}
+	}
 	modelInfo := &ollama.ModelInfo{
 		Name:        name,
 		Archive:     archive,
@@ -267,28 +276,6 @@ func (c *Client) ModelInfo(ctx context.Context, modelTag string) (*ollama.ModelI
 		TagCount:    tagCount,
 		UpdateTime:  updated,
 	}
-
-	var modelTags []*ollama.ModelTag
-	tagFunc := func(_ int, item *goquery.Selection) {
-		leftNode := item.Find("div.flex.space-x-2").First()
-		name := strings.TrimSpace(leftNode.Find("span.truncate").Text())
-		latest := strings.Contains(leftNode.Find("span.px-2").Text(), "latest")
-
-		item.Find("div.space-x-2")
-		size := strings.TrimSpace(item.Find("span.text-neutral-400").First().Text())
-		tag := &ollama.ModelTag{
-			Name:       name,
-			Latest:     latest,
-			Id:         "",
-			Size:       size,
-			UpdateTime: "",
-		}
-		modelTags = append(modelTags, tag)
-	}
-
-	doc.Find("#primary-tags > a").Each(tagFunc)
-	doc.Find("#secondary-tags > a").Each(tagFunc)
-	modelInfo.TagCount = len(modelTags)
 
 	var modelMetas []*ollama.ModelMeta
 	doc.Find("#file-explorer > section.py-2 > div a").Each(func(i int, selection *goquery.Selection) {
@@ -321,8 +308,8 @@ func (c *Client) ModelInfo(ctx context.Context, modelTag string) (*ollama.ModelI
 	readme := doc.Find("div#textareaInput > textarea#editor").Eq(0).Text()
 
 	response := &ollama.ModelInfoResponse{
-		Model:  modelInfo,
-		Tags:   modelTags,
+		Model: modelInfo,
+		//Tags:   modelTags,
 		Metas:  modelMetas,
 		Readme: readme,
 	}

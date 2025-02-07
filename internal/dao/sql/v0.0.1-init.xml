@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
-<vulcan xmlns="http://www.jianggujin.com/xml/vulcan"
-        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:schemaLocation="http://www.jianggujin.com/xml/vulcan
-                   ../../vulcan/vulcan.xsd">
+<dbfly xmlns="https://www.jianggujin.com/c/xml/dbfly"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="https://www.jianggujin.com/c/xml/dbfly
+        https://www.jianggujin.com/c/xml/dbfly.xsd">
     <createTable tableName="t_config" remarks="配置信息表">
         <column columnName="config_key" dataType="VARCHAR" maxLength="100" primaryKey="true"
                 remarks="配置键"/>
@@ -41,4 +41,4 @@
     <createIndex tableName="t_chat_message" indexName="ix_chat_session_id">
         <indexColumn columnName="session_id"/>
     </createIndex>
-</vulcan>
+</dbfly>

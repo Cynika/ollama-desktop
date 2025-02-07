@@ -70,7 +70,7 @@
 
 <script setup>
 import ShowInfoDialog from './show-info-dialog.vue'
-import { ModelInfoOnline } from '@/go/app/Ollama.js'
+import { ModelInfoOnline, ModelTagsOnline } from '@/go/app/Ollama.js'
 import { Pull } from '@/go/app/DownLoader.js'
 import { BrowserOpenURL, ClipboardSetText } from '@/runtime/runtime.js'
 import { ElMessage } from 'element-plus'
@@ -89,13 +89,14 @@ const props = defineProps({
 })
 
 const modelInfo = ref({})
+const tags = ref([])
 
 const name = ref('')
 const tag = ref('')
 const copyCommand = ref('')
 
 const model = computed(() => { return modelInfo.value.model || {} })
-const tags = computed(() => { return modelInfo.value.tags || [] })
+// const tags = computed(() => { return modelInfo.value.tags || [] })
 const metas = computed(() => { return modelInfo.value.metas || {} })
 const readme = computed(() => { return marked.parse(modelInfo.value.readme || '') })
 
@@ -149,11 +150,16 @@ onMounted(() => {
   modelTagCache = props.modelTag
   runQuietly(() => ModelInfoOnline(props.modelTag), data => {
     modelInfo.value = data
-    if (!tag.value) {
-      const tagValue = data?.tags?.find(item => item.latest)?.name || ''
-      modelTagCache = name.value + ':' + tagValue
-      tag.value = tagValue
-    }
+    tags.value = []
+
+    runQuietly(() => ModelTagsOnline(name.value), data => {
+      tags.value = data.tags || []
+      if (!tag.value) {
+        const tagValue = data?.tags?.find(item => item.latest)?.name || ''
+        modelTagCache = name.value + ':' + tagValue
+        tag.value = tagValue
+      }
+    }, _ => { ElMessage.error('获取模型标签信息失败') })
   }, _ => {
     ElMessage.error('获取模型信息失败')
     router.replace('/home/library')

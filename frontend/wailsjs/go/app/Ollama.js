@@ -34,6 +34,10 @@ export function ModelInfoOnline(arg1) {
   return window['go']['app']['Ollama']['ModelInfoOnline'](arg1);
 }
 
+export function ModelTagsOnline(arg1) {
+  return window['go']['app']['Ollama']['ModelTagsOnline'](arg1);
+}
+
 export function Pull(arg1, arg2) {
   return window['go']['app']['Ollama']['Pull'](arg1, arg2);
 }

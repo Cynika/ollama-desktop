@@ -1,7 +1,7 @@
 package app
 
 import (
-	"crypto/tls"
+	"github.com/hashicorp/go-version"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 	"net"
 	"net/http"
@@ -12,52 +12,71 @@ import (
 	"ollama-desktop/internal/ollama/api"
 	"ollama-desktop/internal/ollama/cmd"
 	ollama2 "ollama-desktop/internal/ollama/ollama"
+	"ollama-desktop/internal/util"
 	"os"
 	gorun "runtime"
 	"strings"
-	"time"
+	"sync"
 )
 
 var ollama = Ollama{}
 
 type Ollama struct {
-	started bool
-	version string
+	started       bool
+	version       *version.Version
+	lastVersion   *util.Item
+	checkUpgraded bool
+	lock          sync.Mutex
 }
 
 func (o *Ollama) Envs() []*OllamaEnvVar {
 	envs := []*OllamaEnvVar{
 		{"OLLAMA_DEBUG", cleanEnvValue("OLLAMA_DEBUG"), "Show additional debug information (e.g. OLLAMA_DEBUG=1)"},
-		{"OLLAMA_FLASH_ATTENTION", cleanEnvValue(""), "Enabled flash attention"},
-		{"OLLAMA_HOST", cleanEnvValue(""), "IP Address for the ollama server (default 127.0.0.1:11434)"},
-		{"OLLAMA_KEEP_ALIVE", cleanEnvValue(""), "The duration that models stay loaded in memory (default \"5m\")"},
-		{"OLLAMA_LLM_LIBRARY", cleanEnvValue(""), "Set LLM library to bypass autodetection"},
-		{"OLLAMA_MAX_LOADED_MODELS", cleanEnvValue(""), "Maximum number of loaded models per GPU"},
-		{"OLLAMA_MAX_QUEUE", cleanEnvValue(""), "Maximum number of queued requests"},
-		{"OLLAMA_MAX_VRAM", cleanEnvValue(""), "Maximum VRAM"},
-		{"OLLAMA_MODELS", cleanEnvValue(""), "The path to the models directory"},
-		{"OLLAMA_NOHISTORY", cleanEnvValue(""), "Do not preserve readline history"},
-		{"OLLAMA_NOPRUNE", cleanEnvValue(""), "Do not prune model blobs on startup"},
-		{"OLLAMA_NUM_PARALLEL", cleanEnvValue(""), "Maximum number of parallel requests"},
-		{"OLLAMA_ORIGINS", cleanEnvValue(""), "A comma separated list of allowed origins"},
-		{"OLLAMA_RUNNERS_DIR", cleanEnvValue(""), "Location for runners"},
-		{"OLLAMA_SCHED_SPREAD", cleanEnvValue(""), "Always schedule model across all GPUs"},
-		{"OLLAMA_TMPDIR", cleanEnvValue(""), "Location for temporary files"},
+		{"OLLAMA_FLASH_ATTENTION", cleanEnvValue("OLLAMA_FLASH_ATTENTION"), "Enabled flash attention"},
+		{"OLLAMA_KV_CACHE_TYPE", cleanEnvValue("OLLAMA_KV_CACHE_TYPE"), "Quantization type for the K/V cache (default: f16)"},
+		{"OLLAMA_GPU_OVERHEAD", cleanEnvValue("OLLAMA_GPU_OVERHEAD"), "Reserve a portion of VRAM per GPU (bytes)"},
+		{"OLLAMA_HOST", cleanEnvValue("OLLAMA_HOST"), "IP Address for the ollama server (default 127.0.0.1:11434)"},
+		{"OLLAMA_KEEP_ALIVE", cleanEnvValue("OLLAMA_KEEP_ALIVE"), "The duration that models stay loaded in memory (default \"5m\")"},
+		{"OLLAMA_LLM_LIBRARY", cleanEnvValue("OLLAMA_LLM_LIBRARY"), "Set LLM library to bypass autodetection"},
+		{"OLLAMA_LOAD_TIMEOUT", cleanEnvValue("OLLAMA_LOAD_TIMEOUT"), "How long to allow model loads to stall before giving up (default \"5m\")"},
+		{"OLLAMA_MAX_LOADED_MODELS", cleanEnvValue("OLLAMA_MAX_LOADED_MODELS"), "Maximum number of loaded models per GPU"},
+		{"OLLAMA_MAX_QUEUE", cleanEnvValue("OLLAMA_MAX_QUEUE"), "Maximum number of queued requests"},
+		//{"OLLAMA_MAX_VRAM", cleanEnvValue(""), "Maximum VRAM"},
+		{"OLLAMA_MODELS", cleanEnvValue("OLLAMA_MODELS"), "The path to the models directory"},
+		{"OLLAMA_NOHISTORY", cleanEnvValue("OLLAMA_NOHISTORY"), "Do not preserve readline history"},
+		{"OLLAMA_NOPRUNE", cleanEnvValue("OLLAMA_NOPRUNE"), "Do not prune model blobs on startup"},
+		{"OLLAMA_NUM_PARALLEL", cleanEnvValue("OLLAMA_NUM_PARALLEL"), "Maximum number of parallel requests"},
+		{"OLLAMA_ORIGINS", cleanEnvValue("OLLAMA_ORIGINS"), "A comma separated list of allowed origins"},
+		//{"OLLAMA_RUNNERS_DIR", cleanEnvValue(""), "Location for runners"},
+		{"OLLAMA_SCHED_SPREAD", cleanEnvValue("OLLAMA_SCHED_SPREAD"), "Always schedule model across all GPUs"},
+		//{"OLLAMA_TMPDIR", cleanEnvValue(""), "Location for temporary files"},
+		{"OLLAMA_MULTIUSER_CACHE", cleanEnvValue("OLLAMA_MULTIUSER_CACHE"), "Optimize prompt caching for multi-user scenarios"},
+
+		// Informational
+		{"HTTP_PROXY", cleanEnvValue("HTTP_PROXY"), "HTTP proxy"},
+		{"HTTPS_PROXY", cleanEnvValue("HTTPS_PROXY"), "HTTPS proxy"},
+		{"NO_PROXY", cleanEnvValue("NO_PROXY"), "No proxy"},
+	}
+	if gorun.GOOS != "windows" {
+		// Windows environment variables are case-insensitive so there's no need to duplicate them
+		envs = append(envs, &OllamaEnvVar{"http_proxy", cleanEnvValue("http_proxy"), "HTTP proxy"})
+		envs = append(envs, &OllamaEnvVar{"https_proxy", cleanEnvValue("https_proxy"), "HTTPS proxy"})
+		envs = append(envs, &OllamaEnvVar{"no_proxy", cleanEnvValue("no_proxy"), "No proxy"})
 	}
 	if gorun.GOOS != "darwin" {
-		envs = append(envs, &OllamaEnvVar{"CUDA_VISIBLE_DEVICES", cleanEnvValue(""), "Set which NVIDIA devices are visible"})
-		envs = append(envs, &OllamaEnvVar{"HIP_VISIBLE_DEVICES", cleanEnvValue(""), "Set which AMD devices are visible"})
-		envs = append(envs, &OllamaEnvVar{"ROCR_VISIBLE_DEVICES", cleanEnvValue(""), "Set which AMD devices are visible"})
-		envs = append(envs, &OllamaEnvVar{"GPU_DEVICE_ORDINAL", cleanEnvValue(""), "Set which AMD devices are visible"})
-		envs = append(envs, &OllamaEnvVar{"HSA_OVERRIDE_GFX_VERSION", cleanEnvValue(""), "Override the gfx used for all detected AMD GPUs"})
-		envs = append(envs, &OllamaEnvVar{"OLLAMA_INTEL_GPU", cleanEnvValue(""), "Enable experimental Intel GPU detection"})
+		envs = append(envs, &OllamaEnvVar{"CUDA_VISIBLE_DEVICES", cleanEnvValue("CUDA_VISIBLE_DEVICES"), "Set which NVIDIA devices are visible"})
+		envs = append(envs, &OllamaEnvVar{"HIP_VISIBLE_DEVICES", cleanEnvValue("HIP_VISIBLE_DEVICES"), "Set which AMD devices are visible"})
+		envs = append(envs, &OllamaEnvVar{"ROCR_VISIBLE_DEVICES", cleanEnvValue("ROCR_VISIBLE_DEVICES"), "Set which AMD devices are visible"})
+		envs = append(envs, &OllamaEnvVar{"GPU_DEVICE_ORDINAL", cleanEnvValue("GPU_DEVICE_ORDINAL"), "Set which AMD devices are visible"})
+		envs = append(envs, &OllamaEnvVar{"HSA_OVERRIDE_GFX_VERSION", cleanEnvValue("HSA_OVERRIDE_GFX_VERSION"), "Override the gfx used for all detected AMD GPUs"})
+		envs = append(envs, &OllamaEnvVar{"OLLAMA_INTEL_GPU", cleanEnvValue("OLLAMA_INTEL_GPU"), "Enable experimental Intel GPU detection"})
 	}
 	return envs
 }
 
 // Clean quotes and spaces from the value
 func cleanEnvValue(key string) string {
-	return strings.Trim(os.Getenv(key), "\"' ")
+	return strings.Trim(strings.TrimSpace(os.Getenv(key)), "\"'")
 }
 
 type OllamaEnvVar struct {
@@ -71,12 +90,15 @@ func (o *Ollama) Version() (string, error) {
 }
 
 func (o *Ollama) Heartbeat() {
+	o.lock.Lock()
+	defer o.lock.Unlock()
 	var installed, started bool
 	client := o.newApiClient()
 	started = client.Heartbeat(app.ctx) == nil
 	if started != o.started {
 		o.started = started
-		o.version = ""
+		o.version = nil
+		o.checkUpgraded = false
 	}
 
 	if !started {
@@ -84,11 +106,49 @@ func (o *Ollama) Heartbeat() {
 	} else {
 		installed = true
 	}
-	if started && o.version == "" {
-		o.version, _ = client.Version(app.ctx)
+	if started && o.version == nil {
+		current, _ := client.Version(app.ctx)
+		if current != "" {
+			ver, err := version.NewVersion(strings.ToLower(current))
+			if err != nil {
+				log.Warn().Err(err).Msg("get ollama version")
+			} else {
+				o.version = ver
+			}
+		}
+	}
+	if o.lastVersion == nil {
+		client := createHttpClient()
+		release := util.GithubRelease{Http: client}
+		item, err := release.Last("ollama", "ollama")
+		if err != nil {
+			log.Warn().Err(err).Str("channel", release.Channel()).Msg("check ollama upgrade")
+		} else if item != nil {
+			log.Info().Str("channel", release.Channel()).Str("name", item.Name).Msg("check ollama upgrade")
+			o.lastVersion = item
+		}
+	}
+	upgrade := !o.checkUpgraded && o.lastVersion != nil && o.version != nil
+	if upgrade {
+		last, err := version.NewVersion(strings.ToLower(o.lastVersion.Name))
+		if err != nil {
+			log.Warn().Err(err).Msg("check ollama upgrade")
+		} else {
+			if last != nil {
+				upgrade = last.GreaterThan(o.version)
+			}
+			o.checkUpgraded = true
+		}
+
 	}
 	goos := gorun.GOOS
-	runtime.EventsEmit(app.ctx, "ollamaHeartbeat", installed, started, !started && installed && (goos == "windows" || goos == "darwin"), o.version)
+	current := ""
+	if o.version != nil {
+		current = o.version.String()
+	}
+	runtime.EventsEmit(app.ctx, "ollamaHeartbeat",
+		installed, started, !started && installed && (goos == "windows" || goos == "darwin"),
+		current, upgrade, o.lastVersion)
 }
 
 func (o *Ollama) Start() error {
@@ -180,6 +240,14 @@ func (o *Ollama) ModelInfoOnline(modelTag string) (*olm.ModelInfoResponse, error
 	return resp, err
 }
 
+func (o *Ollama) ModelTagsOnline(model string) (*olm.ModelTagsResponse, error) {
+	resp, err := o.newOllamaClient().ModelTags(app.ctx, model)
+	if err != nil {
+		log.Error().Err(err).Msg("ollama model info error")
+	}
+	return resp, err
+}
+
 func (o *Ollama) newApiClient() *api.Client {
 	ollamaHost := config.Config.Ollama.Host
 
@@ -198,53 +266,9 @@ func (o *Ollama) newApiClient() *api.Client {
 
 func (o *Ollama) newOllamaClient() *ollama2.Client {
 	base, _ := url.Parse("https://ollama.com")
-	var proxy func(*http.Request) (*url.URL, error)
-
-	var scheme, host, port, username, password string
-	if config.Config.Proxy != nil {
-		proxy := config.Config.Proxy
-		scheme = proxy.Scheme
-		host = proxy.Host
-		port = proxy.Port
-		username = proxy.Username
-		password = proxy.Password
-	}
-
-	scheme, _ = configStore.getOrDefault(configProxyScheme, scheme)
-	host, _ = configStore.getOrDefault(configProxyHost, host)
-	port, _ = configStore.getOrDefault(configProxyPort, port)
-	username, _ = configStore.getOrDefault(configProxyUsername, username)
-	password, _ = configStore.getOrDefault(configProxyPassword, password)
-
-	if scheme != "" && host != "" && port != "" {
-		proxy = http.ProxyURL(o.proxyUrl(scheme, host, port, username, password))
-	}
 
 	return &ollama2.Client{
 		Base: base,
-		Http: &http.Client{
-			Timeout: 30 * time.Second, // 设置超时时间为 30 秒
-			Transport: &http.Transport{
-				Proxy: proxy,
-				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: true, // 不验证证书
-				},
-			},
-		},
+		Http: createHttpClient(),
 	}
-}
-
-func (o *Ollama) proxyUrl(scheme, host, port, username, password string) *url.URL {
-	u := &url.URL{
-		Scheme: scheme,
-		Host:   net.JoinHostPort(host, port),
-	}
-	if username != "" {
-		if password != "" {
-			u.User = url.UserPassword(username, password)
-		} else {
-			u.User = url.User(username)
-		}
-	}
-	return u
 }

@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"embed"
 	_ "github.com/glebarez/go-sqlite"
-	"ollama-desktop/internal/vulcan"
+	"github.com/jianggujin/go-dbfly"
 	"os"
 	"path/filepath"
 	"time"
@@ -15,9 +15,8 @@ import (
 var sqlFiles embed.FS
 
 type DbDao struct {
-	ctx    context.Context
-	db     *sql.DB
-	driver *vulcan.SqlDriver
+	ctx context.Context
+	db  *sql.DB
 }
 
 var Dao *DbDao
@@ -61,17 +60,13 @@ func (d *DbDao) init() error {
 }
 
 func (d *DbDao) migrate() error {
-	d.driver = vulcan.NewSqlDriver(d.db)
-	migrator := vulcan.NewSqliteMigrator(d.driver)
-	migrate := vulcan.NewVulcan(migrator, &vulcan.EmbedFSSource{
+	driver := dbfly.NewSqlDriver(d.db)
+	fly := dbfly.NewDbfly(dbfly.NewSqliteMigratory(), driver, &dbfly.EmbedFSSource{
 		Fs:    sqlFiles,
 		Paths: []string{"sql"},
 	})
-	return migrate.MigrateContext(d.ctx)
-}
-
-func (d *DbDao) GetDriver() *vulcan.SqlDriver {
-	return d.driver
+	fly.SetChangeTableName("database_change_log")
+	return fly.MigrateContext(d.ctx)
 }
 
 func (d *DbDao) GetDb() *sql.DB {
