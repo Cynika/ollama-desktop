@@ -55,13 +55,14 @@ import { ElMessage } from 'element-plus'
 import { runQuietly } from '~/utils/wrapper.js'
 import { useRouter } from 'vue-router'
 import loadingOptions from '~/utils/loading.js'
+import { Base64 } from 'js-base64'
 
 const loading = ref(false)
 
 const router = useRouter()
 
 function openLibrary(name) {
-  router.push('/home/library/' + name)
+  router.push('/home/library/' + Base64.encodeURI(name))
 }
 
 const searchForm = ref({

@@ -186,7 +186,13 @@ func (c *Client) Library(ctx context.Context, request *ollama.LibraryRequest) ([
 }
 
 func (c *Client) ModelTags(ctx context.Context, model string) (*ollama.ModelTagsResponse, error) {
-	respBody, err := c.do(ctx, fmt.Sprintf("/library/%s/tags", model), nil)
+	path := ""
+	if strings.Contains(model, "/") {
+		path = fmt.Sprintf("/%s/tags", model)
+	} else {
+		path = fmt.Sprintf("/library/%s/tags", model)
+	}
+	respBody, err := c.do(ctx, path, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -245,7 +251,13 @@ func (c *Client) ModelTags(ctx context.Context, model string) (*ollama.ModelTags
 }
 
 func (c *Client) ModelInfo(ctx context.Context, modelTag string) (*ollama.ModelInfoResponse, error) {
-	respBody, err := c.do(ctx, fmt.Sprintf("/library/%s", modelTag), nil)
+	path := ""
+	if strings.Contains(modelTag, "/") {
+		path = "/" + modelTag
+	} else {
+		path = fmt.Sprintf("/library/%s", modelTag)
+	}
+	respBody, err := c.do(ctx, path, nil)
 	if err != nil {
 		return nil, err
 	}

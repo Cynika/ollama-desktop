@@ -90,21 +90,15 @@ func TestOllama_Chat(t *testing.T) {
 }
 
 func TestOllama_ModelInfoOnline(t *testing.T) {
-	resp, err := newOllamaClient().ModelInfo(context.Background(), "deepseek-r1")
+	resp, err := newOllamaClient().ModelInfo(context.Background(), "SIGJNF/deepseek-r1-671b-1.58bit")
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log("model")
-	pretty(t, resp.Model)
-	t.Log("metas")
-	for _, meta := range resp.Metas {
-		t.Log(meta)
-	}
-	t.Log("readme", resp.Readme)
+	pretty(t, resp)
 }
 
 func TestOllama_ModelTags(t *testing.T) {
-	resp, err := newOllamaClient().ModelTags(context.Background(), "deepseek-r1")
+	resp, err := newOllamaClient().ModelTags(context.Background(), "SIGJNF/deepseek-r1-671b-1.58bit")
 	if err != nil {
 		t.Fatal(err)
 	}

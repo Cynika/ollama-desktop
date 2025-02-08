@@ -79,6 +79,7 @@ import { runQuietly } from '~/utils/wrapper.js'
 import marked from '~/utils/markdown.js'
 import { useOllamaStore } from '~/store/ollama.js'
 import loadingOptions from '~/utils/loading.js'
+import { Base64 } from 'js-base64'
 
 const loading = ref(false)
 
@@ -126,7 +127,8 @@ function handleReadmeClick(event) {
 
 watch(() => tag.value, newValue => {
   if (newValue && (name.value + ':' + tag.value) !== modelTagCache) {
-    router.replace('/home/library/' + name.value + ':' + tag.value)
+    const path = Base64.encodeURI(name.value + ':' + tag.value)
+    router.replace('/home/library/' + path)
   }
 })
 
@@ -135,20 +137,21 @@ onMounted(() => {
     router.replace('/home/library')
     return
   }
-  copyCommand.value = 'ollama run ' + props.modelTag
-  const index = props.modelTag.lastIndexOf(':')
+  const modelTag = Base64.decode(props.modelTag)
+  copyCommand.value = 'ollama run ' + modelTag
+  const index = modelTag.lastIndexOf(':')
   if (index > 0) {
-    name.value = props.modelTag.substring(0, index)
-    tag.value = props.modelTag.substring(index + 1)
+    name.value = modelTag.substring(0, index)
+    tag.value = modelTag.substring(index + 1)
   } else {
-    name.value = props.modelTag
+    name.value = modelTag
   }
 
   readmeContainer = document.getElementById('readme')
   readmeContainer.addEventListener('click', handleReadmeClick)
   loading.value = true
-  modelTagCache = props.modelTag
-  runQuietly(() => ModelInfoOnline(props.modelTag), data => {
+  modelTagCache = modelTag
+  runQuietly(() => ModelInfoOnline(modelTag), data => {
     modelInfo.value = data
     tags.value = []
 
@@ -184,9 +187,10 @@ function handleCopyCommand() {
 
 function handleDownload() {
   loading.value = true
-  runQuietly(() => Pull({ model: props.modelTag }),
-    _ => ElMessage.success('模型' + props.modelTag + '已加入下载队列'),
-    _ => ElMessage.error('模型' + props.modelTag + '加入下载队列失败'), _ => { loading.value = false })
+  const modelTag = Base64.decode(props.modelTag)
+  runQuietly(() => Pull({ model: modelTag }),
+    _ => ElMessage.success('模型' + modelTag + '已加入下载队列'),
+    _ => ElMessage.error('模型' + modelTag + '加入下载队列失败'), _ => { loading.value = false })
 }
 
 function closeViewer() {
