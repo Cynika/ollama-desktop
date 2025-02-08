@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/mitchellh/go-homedir"
 	"net"
 	"os"
 	"strconv"
@@ -17,6 +18,8 @@ var (
 )
 
 var ErrInvalidHostPort = errors.New("invalid port specified in OLLAMA_HOST")
+
+var WorkDir = "~/.ollama-desktop"
 
 // 日志配置
 type Logging struct {
@@ -78,6 +81,17 @@ func init() {
 			os.Exit(1)
 		}
 	}()
+
+	workDir := os.Getenv("OLLAMA_DESKTOP_WORKDIR")
+	workDir = strings.TrimSpace(strings.Trim(strings.TrimSpace(workDir), "\"'"))
+	if workDir != "" {
+		WorkDir = workDir
+	}
+	var err error
+	WorkDir, err = homedir.Expand(WorkDir)
+	if err != nil {
+		panic(err)
+	}
 
 	Config.Width = 1024
 	Config.Height = 768

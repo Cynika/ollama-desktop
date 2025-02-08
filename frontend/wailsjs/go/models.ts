@@ -159,7 +159,9 @@ export namespace app {
 	    }
 	}
 	export class OllamaEnvVar {
-	
+	    Name: string;
+	    Value: string;
+	    Description: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new OllamaEnvVar(source);
@@ -167,7 +169,9 @@ export namespace app {
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
-	
+	        this.Name = source["Name"];
+	        this.Value = source["Value"];
+	        this.Description = source["Description"];
 	    }
 	}
 	export class ProxyConfig {
@@ -272,7 +276,7 @@ export namespace ollama {
 	    }
 	}
 	export class Duration {
-	
+	    Duration: number;
 	
 	    static createFrom(source: any = {}) {
 	        return new Duration(source);
@@ -280,14 +284,13 @@ export namespace ollama {
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
-	
+	        this.Duration = source["Duration"];
 	    }
 	}
 	export class EmbeddingRequest {
 	    model: string;
 	    prompt: string;
-	    // Go type: Duration
-	    keep_alive?: any;
+	    keep_alive?: Duration;
 	    options: {[key: string]: any};
 	
 	    static createFrom(source: any = {}) {
@@ -298,7 +301,7 @@ export namespace ollama {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.model = source["model"];
 	        this.prompt = source["prompt"];
-	        this.keep_alive = this.convertValues(source["keep_alive"], null);
+	        this.keep_alive = this.convertValues(source["keep_alive"], Duration);
 	        this.options = source["options"];
 	    }
 	
