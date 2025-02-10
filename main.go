@@ -3,10 +3,12 @@ package main
 import (
 	"embed"
 	"fmt"
+	"github.com/sqweek/dialog"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 	"ollama-desktop/internal/app"
 	"ollama-desktop/internal/config"
 	"ollama-desktop/internal/log"
+	"os"
 	"runtime"
 	"time"
 )
@@ -34,6 +36,8 @@ func main() {
 	})
 
 	if err != nil {
+		dialog.Message("启动应用失败(%+v)", err).Title("异常").Error()
 		log.Error().Err(err).Msg("Run Ollama Desktop Error")
+		os.Exit(1)
 	}
 }

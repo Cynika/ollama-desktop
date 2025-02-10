@@ -6,6 +6,7 @@ import (
 	"embed"
 	_ "github.com/glebarez/go-sqlite"
 	"github.com/jianggujin/go-dbfly"
+	"ollama-desktop/internal/config"
 	"os"
 	"path/filepath"
 	"time"
@@ -40,7 +41,7 @@ func (d *DbDao) init() error {
 		return nil
 	}
 	// 连接到SQLite数据库
-	path := "config/ollama-desktop.db"
+	path := config.DbFileName
 	dir := filepath.Dir(path)
 	os.MkdirAll(dir, os.ModePerm)
 	db, err := sql.Open("sqlite", path)

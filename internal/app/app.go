@@ -3,12 +3,14 @@ package app
 import (
 	"context"
 	"github.com/hashicorp/go-version"
+	"github.com/sqweek/dialog"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	wailsruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 	"ollama-desktop/internal/config"
 	"ollama-desktop/internal/job"
 	"ollama-desktop/internal/log"
 	"ollama-desktop/internal/util"
+	"os"
 	"runtime"
 	"strings"
 	"time"
@@ -22,6 +24,12 @@ type App struct {
 }
 
 func (a *App) startup(ctx context.Context) {
+	defer func() {
+		if r := recover(); r != nil {
+			dialog.Message("初始化应用失败(%+v)", r).Title("异常").Error()
+			os.Exit(1)
+		}
+	}()
 	log.Info().Ctx(ctx).Msg("Ollama Desktop startup...")
 	a.ctx = ctx
 	dao.startup(ctx)

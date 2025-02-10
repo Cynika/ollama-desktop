@@ -2,6 +2,7 @@ package log
 
 import (
 	"github.com/rs/zerolog"
+	"github.com/sqweek/dialog"
 	"gopkg.in/natefinch/lumberjack.v2"
 	"ollama-desktop/internal/config"
 	"os"
@@ -12,6 +13,12 @@ var (
 )
 
 func init() {
+	defer func() {
+		if r := recover(); r != nil {
+			dialog.Message("初始化日志失败(%+v)", r).Title("异常").Error()
+			os.Exit(1)
+		}
+	}()
 	level, err := zerolog.ParseLevel(config.Config.Logging.Level)
 	if err != nil {
 		level = zerolog.InfoLevel
@@ -20,12 +27,12 @@ func init() {
 	zerolog.TimeFieldFormat = config.Config.Logging.TimeFormat
 	// consoleWriter := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: config.Config.Logging.TimeFormat}
 	// 未配置日志文件，必须初始化控制台日志
-	if config.Config.Logging.Filename == "" {
-		Logger = zerolog.New(os.Stdout).Level(level).With().Timestamp().Logger()
-		return
-	}
+	//if config.Config.Logging.Filename == "" {
+	//	Logger = zerolog.New(os.Stdout).Level(level).With().Timestamp().Logger()
+	//	return
+	//}
 	lumberjackLogger := &lumberjack.Logger{
-		Filename:   config.Config.Logging.Filename,   // 日志文件的位置
+		Filename:   config.LogFileName,               // 日志文件的位置
 		MaxSize:    config.Config.Logging.MaxSize,    // 文件最大尺寸（以MB为单位）
 		MaxBackups: config.Config.Logging.MaxBackups, // 保留的最大旧文件数量
 		MaxAge:     config.Config.Logging.MaxAge,     // 保留旧文件的最大天数

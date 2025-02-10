@@ -35,12 +35,18 @@
             <el-tag v-for="(tag, ti) in item.tags" :key="ti" :type="tag == 'Embedding' || tag == 'Vision' || tag == 'Tools' || tag == 'Code' ? 'success' : 'primary'">{{ tag }}</el-tag>
           </div>
           <div style="margin-top: 10px;display: flex;align-items: center;">
-            <i-ep-download style="color:var(--el-color-info);"/>
-            <el-text type="info" style="margin-left: 5px;">{{ item.pullCount }} Pulls</el-text>
-            <i-ep-price-tag style="color:var(--el-color-info);margin-left: 10px;"/>
-            <el-text type="info" style="margin-left: 5px;">{{ item.tagCount}} Tags</el-text>
-            <i-ep-clock style="color:var(--el-color-info);margin-left: 10px;"/>
-            <el-text type="info" style="margin-left: 5px;">Updated {{ item.updateTime }}</el-text>
+            <div class="model-info" v-if="item.pullCount">
+              <i-ep-download style="color:var(--el-color-info);"/>
+              <el-text type="info" style="margin-left: 5px;">{{ item.pullCount }} Pulls</el-text>
+            </div>
+            <div class="model-info" v-if="item.tagCount">
+              <i-ep-price-tag style="color:var(--el-color-info);"/>
+              <el-text type="info" style="margin-left: 5px;">{{ item.tagCount}} Tags</el-text>
+            </div>
+            <div class="model-info" v-if="item.updateTime">
+              <i-ep-clock style="color:var(--el-color-info);"/>
+              <el-text type="info" style="margin-left: 5px;">Updated {{ item.updateTime }}</el-text>
+            </div>
           </div>
         </div>
       </div>
@@ -157,5 +163,12 @@ watch(searchForm, lazySearch, {
     margin-top: 20px;
     padding-top: 20px;
   }
+}
+.model-info {
+  display: flex;
+  align-items: center;
+}
+.model-info + .model-info {
+  margin-left: 10px;
 }
 </style>

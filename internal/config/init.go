@@ -5,8 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"github.com/mitchellh/go-homedir"
+	"github.com/sqweek/dialog"
 	"net"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -19,18 +21,23 @@ var (
 
 var ErrInvalidHostPort = errors.New("invalid port specified in OLLAMA_HOST")
 
-var WorkDir = "~/.ollama-desktop"
+var (
+	WorkDir        = "~/.ollama-desktop"
+	ConfigFileName = "config/ollama-desktop.json"
+	DbFileName     = "config/ollama-desktop.db"
+	LogFileName    = "log/ollama-desktop.log"
+)
 
 // 日志配置
 type Logging struct {
 	Level      string `json:"level"`      // 日志级别
 	TimeFormat string `json:"timeFormat"` // 时间格式化
-	Filename   string `json:"filename"`   // 日志文件
-	MaxSize    int    `json:"maxSize"`    // 文件最大尺寸（以MB为单位）
-	MaxBackups int    `json:"maxBackups"` // 保留的最大旧文件数量
-	MaxAge     int    `json:"maxAge"`     // 保留旧文件的最大天数
-	Compress   bool   `json:"compress"`   // 是否压缩/归档旧文件
-	LocalTime  bool   `json:"localTime"`  // 使用本地时间创建时间戳
+	// Filename   string `json:"filename"`   // 日志文件
+	MaxSize    int  `json:"maxSize"`    // 文件最大尺寸（以MB为单位）
+	MaxBackups int  `json:"maxBackups"` // 保留的最大旧文件数量
+	MaxAge     int  `json:"maxAge"`     // 保留旧文件的最大天数
+	Compress   bool `json:"compress"`   // 是否压缩/归档旧文件
+	LocalTime  bool `json:"localTime"`  // 使用本地时间创建时间戳
 }
 
 // 代理配置
@@ -77,11 +84,17 @@ var Config AppConfig
 func init() {
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Println("Init config error:", r)
+			dialog.Message("初始化配置失败(%+v)", r).Title("异常").Error()
 			os.Exit(1)
 		}
 	}()
 
+	initWorkDir()
+	initDefaultConfig()
+	loadConfigFromFile()
+}
+
+func initWorkDir() {
 	workDir := os.Getenv("OLLAMA_DESKTOP_WORKDIR")
 	workDir = strings.TrimSpace(strings.Trim(strings.TrimSpace(workDir), "\"'"))
 	if workDir != "" {
@@ -92,7 +105,15 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
+	if err := os.MkdirAll(WorkDir, os.ModePerm); err != nil {
+		panic(err)
+	}
+	ConfigFileName = filepath.Join(WorkDir, ConfigFileName)
+	DbFileName = filepath.Join(WorkDir, DbFileName)
+	LogFileName = filepath.Join(WorkDir, LogFileName)
+}
 
+func initDefaultConfig() {
 	Config.Width = 1024
 	Config.Height = 768
 	Config.MinWidth = 1024
@@ -103,7 +124,7 @@ func init() {
 
 	Config.Logging.Level = "info"
 	Config.Logging.TimeFormat = time.DateTime
-	Config.Logging.Filename = "log/ollama-desktop.log"
+	// Config.Logging.Filename = "log/ollama-desktop.log"
 	Config.Logging.MaxSize = 10
 	Config.Logging.MaxBackups = 20
 	Config.Logging.MaxAge = 7
@@ -114,20 +135,17 @@ func init() {
 	if err == nil {
 		Config.Ollama.Host = host
 	}
-
-	loadFromTomlFile()
 }
 
-// 从toml文件加载配置
-func loadFromTomlFile() {
-	configFile := "config/ollama-desktop.json"
-	exist, err := isExist(configFile)
+// 从文件加载配置
+func loadConfigFromFile() {
+	exist, err := isExist(ConfigFileName)
 	if err != nil || !exist {
 		// 忽略
 		return
 	}
 
-	buf, err := os.ReadFile(configFile)
+	buf, err := os.ReadFile(ConfigFileName)
 
 	_ = json.Unmarshal(buf, &Config)
 }

@@ -20,12 +20,18 @@
             <el-tag v-for="(tag, ti) in model.tags" :key="ti" :type="tag == 'Embedding' || tag == 'Vision' || tag == 'Tools' || tag == 'Code' ? 'success' : 'primary'">{{ tag }}</el-tag>
           </div>
           <div style="margin-top: 10px;display: flex;align-items: center;">
-          <i-ep-download style="color:var(--el-color-info);"/>
-          <el-text type="info" style="margin-left: 5px;">{{ model.pullCount }} Pulls</el-text>
-            <i-ep-price-tag style="color:var(--el-color-info);margin-left: 10px;"/>
-            <el-text type="info" style="margin-left: 5px;">{{ model.tagCount}} Tags</el-text>
-            <i-ep-clock style="color:var(--el-color-info);margin-left: 10px;"/>
-            <el-text type="info" style="margin-left: 5px;">Updated {{ model.updateTime }}</el-text>
+            <div class="model-info" v-if="model.pullCount">
+              <i-ep-download style="color:var(--el-color-info);"/>
+              <el-text type="info" style="margin-left: 5px;">{{ model.pullCount }} Pulls</el-text>
+            </div>
+            <div class="model-info" v-if="model.tagCount">
+              <i-ep-price-tag style="color:var(--el-color-info);"/>
+              <el-text type="info" style="margin-left: 5px;">{{ model.tagCount}} Tags</el-text>
+            </div>
+            <div class="model-info" v-if="model.updateTime">
+              <i-ep-clock style="color:var(--el-color-info);"/>
+              <el-text type="info" style="margin-left: 5px;">Updated {{ model.updateTime }}</el-text>
+            </div>
           </div>
         </div>
         <div style="display: flex;align-items: center;margin-top: 20px;">
@@ -98,7 +104,7 @@ const copyCommand = ref('')
 
 const model = computed(() => { return modelInfo.value.model || {} })
 // const tags = computed(() => { return modelInfo.value.tags || [] })
-const metas = computed(() => { return modelInfo.value.metas || {} })
+const metas = computed(() => { return modelInfo.value.metas || [] })
 const readme = computed(() => { return marked.parse(modelInfo.value.readme || '') })
 
 const showViewer = ref(false)
@@ -152,11 +158,11 @@ onMounted(() => {
   loading.value = true
   modelTagCache = modelTag
   runQuietly(() => ModelInfoOnline(modelTag), data => {
-    modelInfo.value = data
+    modelInfo.value = data || {}
     tags.value = []
 
     runQuietly(() => ModelTagsOnline(name.value), data => {
-      tags.value = data.tags || []
+      tags.value = data?.tags || []
       if (!tag.value) {
         const tagValue = data?.tags?.find(item => item.latest)?.name || ''
         modelTagCache = name.value + ':' + tagValue
@@ -237,5 +243,12 @@ function closeViewer() {
   .el-dialog__body {
     height: calc(100% - 32px);
   }
+}
+.model-info {
+  display: flex;
+  align-items: center;
+}
+.model-info + .model-info {
+  margin-left: 10px;
 }
 </style>

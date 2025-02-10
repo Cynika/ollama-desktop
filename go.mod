@@ -12,11 +12,13 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/rs/zerolog v1.33.0
+	github.com/sqweek/dialog v0.0.0-20240226140203-065105509627
 	github.com/wailsapp/wails/v2 v2.9.2
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )
 
 require (
+	github.com/TheTitanrain/w32 v0.0.0-20180517000239-4f5cfb03fabf // indirect
 	github.com/andybalholm/cascadia v1.3.2 // indirect
 	github.com/bep/debounce v1.2.1 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
