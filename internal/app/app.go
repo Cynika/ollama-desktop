@@ -21,6 +21,7 @@ var app = App{}
 type App struct {
 	ctx         context.Context
 	lastVersion *util.Item
+	systemApp   *SystemApp // Added for system operations
 }
 
 func (a *App) startup(ctx context.Context) {
@@ -32,6 +33,21 @@ func (a *App) startup(ctx context.Context) {
 	}()
 	log.Info().Ctx(ctx).Msg("Ollama Desktop startup...")
 	a.ctx = ctx
+	// Initialize SystemApp. It's already part of the main App struct,
+	// and Wails will bind its methods if App is bound.
+	// No explicit binding call like `runtime.Bind(ctx, a.systemApp)` is needed here
+	// if SystemApp is a field of the main App struct passed to wails.Run.
+	// We will ensure SystemApp is initialized when the main App instance `app` is created or configured.
+	// For now, we assume 'app' is the global instance that gets bound.
+	// If 'app' is initialized like `app = App{}`, then systemApp needs to be initialized there.
+	// Or, if 'app' is passed to wails.Run, its fields are bound.
+
+	// Let's assume 'app' is the instance used by Wails.
+	// If 'app' is globally defined as `var app = App{}`, we can initialize systemApp like this:
+	if a.systemApp == nil {
+		a.systemApp = NewSystemApp()
+	}
+
 	dao.startup(ctx)
 	job.GetSchedule().AddFunc("0/10 * * * * ?", ollama.Heartbeat)
 	go a.checkUpgrade()
